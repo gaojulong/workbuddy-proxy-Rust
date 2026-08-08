@@ -1,0 +1,19 @@
+# 编译产物
+/target
+
+# 隐私文件（含 token / API key，禁止上传）
+.env
+data/
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+nohup.out
