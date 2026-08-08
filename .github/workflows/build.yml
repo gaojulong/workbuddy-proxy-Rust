@@ -1,7 +1,10 @@
-name: Build
+name: Release
 
 on:
-  workflow_dispatch: # 手动触发
+  push:
+    tags:
+      - 'v*' # 打 tag 如 v1.0.0 时触发
+  workflow_dispatch: # 也支持手动触发
 
 jobs:
   build:
@@ -43,8 +46,45 @@ jobs:
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
 
+      # 打包成 zip（附带 .env.example 和 README，方便用户直接使用）
+      - name: Package
+        shell: bash
+        run: |
+          cd ${{ github.workspace }}
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/${{ matrix.binary }} dist/
+          cp .env.example dist/
+          cp README.md dist/
+          cd dist
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            powershell Compress-Archive -Path * -DestinationPath wb-proxy-${{ matrix.target }}.zip
+          else
+            zip -r wb-proxy-${{ matrix.target }}.zip *
+          fi
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: wb-proxy-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/${{ matrix.binary }}
+          path: dist/wb-proxy-${{ matrix.target }}.zip
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false
