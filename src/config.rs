@@ -1,5 +1,5 @@
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// 与 Python 版 server.py 完全一致的配置加载逻辑：
 /// 已有环境变量优先（不覆盖）→ .env → 默认值
@@ -23,7 +23,12 @@ pub struct Config {
 impl Config {
     pub fn load() -> Self {
         // .env 加载（不覆盖已有环境变量），与 Python dotenv(override=False) 一致
-        let base_dir = Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf();
+        // base_dir 使用可执行文件所在目录（而非编译时路径），
+        // 保证分发后 .env / data/ 与程序放一起，任何位置运行都正确
+        let base_dir = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|d| d.to_path_buf()))
+            .unwrap_or_else(|| PathBuf::from("."));
         let _ = dotenvy::from_path(base_dir.join(".env"));
 
         let get = |key: &str, default: &str| -> String {
