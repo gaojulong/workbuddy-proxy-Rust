@@ -3,7 +3,7 @@
 
 # 隐私文件（含 token / API key，禁止上传）
 .env
-data/
+data/token.json
 
 # 编辑器
 .vscode/

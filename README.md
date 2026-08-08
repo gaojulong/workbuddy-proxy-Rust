@@ -32,6 +32,17 @@ cp .env.example .env
 | `WB_REASONING_TIMEOUT` | 300 | 推理模型超时（秒） |
 | `WB_TOKEN` / `WB_REFRESH_TOKEN` | 空 | 手动 token（可选，默认 CDP 自动提取） |
 
+## Token 缓存（data/）
+
+程序会自动在 `data/token.json` 缓存 token（含 access_token / refresh_token / saved_at），
+下次启动时自动读取，避免每次重新提取。
+
+- `data/token.json` — 真实缓存（**自动生成，不上传**）
+- `data/token.json.example` — 格式示例（可参考字段结构）
+- token 过期后会自动刷新；刷新失败会回退 CDP 重新提取
+
+如需手动重置：删除 `data/token.json` 后重启程序即可。
+
 ## 接口
 
 | 端点 | 说明 |
