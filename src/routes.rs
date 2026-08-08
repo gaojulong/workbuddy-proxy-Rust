@@ -151,7 +151,27 @@ pub async fn init_state(config: Arc<Config>) -> AppState {
 
     let api_key = config.proxy_api_key.clone();
     let mut tm = TokenManager::new(config.clone());
-    tm.init().await;
+    let token_ok = tm.init().await;
+
+    if !token_ok {
+        // token 获取失败：打印清晰指引并退出（避免“看似正常启动实则不可用”的假象）
+        eprintln!("\n========================================");
+        eprintln!("  ⚠️  无法获取 WorkBuddy Token");
+        eprintln!("========================================");
+        eprintln!("代理无法启动：未找到有效的登录凭证。");
+        eprintln!("");
+        eprintln!("请按以下步骤开启 WorkBuddy 调试模式：");
+        eprintln!("");
+        eprintln!("  方法1（推荐）：完全退出 WorkBuddy，然后用终端启动：");
+        eprintln!("    open -a WorkBuddy --args --remote-debugging-port=9222");
+        eprintln!("");
+        eprintln!("  方法2：Windows 用户在命令行执行：");
+        eprintln!("    start \"\" \"%LOCALAPPDATA%\\Programs\\WorkBuddy\\WorkBuddy.exe\" --remote-debugging-port=9222");
+        eprintln!("");
+        eprintln!("开启调试模式后，重新运行本程序即可自动获取 Token。");
+        eprintln!("========================================\n");
+        std::process::exit(1);
+    }
 
     Arc::new(AppStateInner {
         config,

@@ -42,8 +42,8 @@ impl TokenManager {
         }
     }
 
-    /// 初始化（与 Python init() 一致）
-    pub async fn init(&mut self) {
+    /// 初始化（与 Python init() 一致），返回是否成功获取到 token
+    pub async fn init(&mut self) -> bool {
         self.access_token = self.config.wb_token.clone();
         self.refresh_token = self.config.wb_refresh_token.clone();
 
@@ -59,7 +59,9 @@ impl TokenManager {
             self.apply_claims();
             log_token_info(&self.access_token);
             self.save_to_file();
+            return true;
         }
+        false
     }
 
     /// 从 token.json 加载（与 Python _load_from_file 一致）
