@@ -29,12 +29,27 @@ impl Config {
             .ok()
             .and_then(|p| p.parent().map(|d| d.to_path_buf()))
             .unwrap_or_else(|| PathBuf::from("."));
-        // 首次运行：若 .env 不存在但有 .env.example，自动复制一份便于用户自定义
+        // 首次运行：若 .env 不存在但有 .env.example，自动复制一份便于用户自定义；
+        // 若连 .env.example 也没有，则用内置默认配置生成一份 .env
         let env_path = base_dir.join(".env");
         let env_example = base_dir.join(".env.example");
-        if !env_path.exists() && env_example.exists() {
-            if std::fs::copy(&env_example, &env_path).is_ok() {
-                tracing::info!("已从 .env.example 自动创建 .env（可编辑自定义配置）");
+        if !env_path.exists() {
+            if env_example.exists() {
+                if std::fs::copy(&env_example, &env_path).is_ok() {
+                    tracing::info!("已从 .env.example 自动创建 .env（可编辑自定义配置）");
+                }
+            } else {
+                // 内置默认模板（与 .env.example 内容一致）
+                let default_env = r#"# WorkBuddy Proxy 配置
+# 代理监听端口
+PROXY_PORT=19090
+
+# 客户端使用的 API Key（自定义，用于保护代理接口）
+PROXY_API_KEY=wb-proxy-key
+"#;
+                if std::fs::write(&env_path, default_env).is_ok() {
+                    tracing::info!("已自动创建 .env（默认配置，可编辑自定义）");
+                }
             }
         }
         let _ = dotenvy::from_path(env_path);
