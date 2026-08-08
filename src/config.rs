@@ -29,7 +29,15 @@ impl Config {
             .ok()
             .and_then(|p| p.parent().map(|d| d.to_path_buf()))
             .unwrap_or_else(|| PathBuf::from("."));
-        let _ = dotenvy::from_path(base_dir.join(".env"));
+        // 首次运行：若 .env 不存在但有 .env.example，自动复制一份便于用户自定义
+        let env_path = base_dir.join(".env");
+        let env_example = base_dir.join(".env.example");
+        if !env_path.exists() && env_example.exists() {
+            if std::fs::copy(&env_example, &env_path).is_ok() {
+                tracing::info!("已从 .env.example 自动创建 .env（可编辑自定义配置）");
+            }
+        }
+        let _ = dotenvy::from_path(env_path);
 
         let get = |key: &str, default: &str| -> String {
             env::var(key).unwrap_or_else(|_| default.to_string())
