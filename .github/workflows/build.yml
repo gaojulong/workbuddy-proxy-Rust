@@ -47,7 +47,19 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }}
 
       # 打包成 zip（附带 .env.example 和 README，方便用户直接使用）
-      - name: Package
+      # 注意: Windows 用 PowerShell 原生压缩（bash 会把 Windows 路径反斜杠吃掉）
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item "target\${{ matrix.target }}\release\${{ matrix.binary }}" dist\
+          Copy-Item .env.example dist\
+          Copy-Item README.md dist\
+          Compress-Archive -Path "dist\*" -DestinationPath "dist\wb-proxy-${{ matrix.target }}.zip" -Force
+
+      - name: Package (Unix)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           cd ${{ github.workspace }}
@@ -56,11 +68,7 @@ jobs:
           cp .env.example dist/
           cp README.md dist/
           cd dist
-          if [ "${{ runner.os }}" == "Windows" ]; then
-            powershell Compress-Archive -Path * -DestinationPath wb-proxy-${{ matrix.target }}.zip
-          else
-            zip -r wb-proxy-${{ matrix.target }}.zip *
-          fi
+          zip -r wb-proxy-${{ matrix.target }}.zip *
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
