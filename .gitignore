@@ -17,3 +17,7 @@ Thumbs.db
 # 日志
 *.log
 nohup.out
+
+# Python
+__pycache__/
+*.pyc
