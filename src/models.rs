@@ -1,54 +1,32 @@
-/// 与 Python 版 server.py 完全一致的模型数据迁移
+/// 模型数据（与上游 WorkBuddy 5.3.11 保持一致的快照）
+///
+/// 来源：本机 WorkBuddy 日志
+///   - main.log  `[buildResolvedProductConfig]`（基础配置 44 个模型 ID）
+///   - renderer.log `declaredModels=[...]`（CLI 界面可选模型，如 glm-5.2 / hy3 / minimax-m3 / kimi-k3-1 等）
+/// 已剔除上游不存在的模型（Claude 全系、Gemini 全系、-ioa 后缀旧名等），
+/// 仅保留上游真实 ID + pi 正在使用的兼容别名（kimi-k3 → kimi-k3-1）。
 
 /// Cursor 模型名 → WorkBuddy 模型 ID
+/// 仅保留：上游真实存在的自身映射 + pi 兼容别名
 pub const CURSOR_TO_WB_MAP: &[(&str, &str)] = &[
-    // Claude
-    ("claude-4.6-opus-high", "claude-opus-4.6"),
-    ("claude-4.6-opus-max", "claude-opus-4.6-1m"),
-    ("claude-4.6-opus-high-thinking", "claude-opus-4.6"),
-    ("claude-4.6-opus-high-thinking-fast", "claude-opus-4.6"),
-    ("claude-4.6-opus-max-thinking", "claude-opus-4.6-1m"),
-    ("claude-4.6-opus-max-thinking-fast", "claude-opus-4.6-1m"),
-    ("claude-4.6-sonnet-medium", "claude-sonnet-4.6"),
-    ("claude-4.6-sonnet-medium-thinking", "claude-sonnet-4.6-1m"),
-    ("claude-4.5-opus-high", "claude-opus-4.5"),
-    ("claude-4.5-opus-high-thinking", "claude-opus-4.5"),
-    ("claude-4.5-sonnet", "claude-4.5"),
-    ("claude-4.5-sonnet-thinking", "claude-4.5"),
-    ("claude-4.5-haiku", "claude-haiku-4.5"),
-    ("claude-4.5-haiku-thinking", "claude-haiku-4.5"),
-    ("claude-opus-4.6", "claude-opus-4.6"),
-    // Gemini
-    ("gemini-3.1-pro", "gemini-3.0-pro"),
-    ("gemini-3-flash", "gemini-3.1-flash-lite"),
     // Kimi
-    ("kimi-k2.5", "kimi-k2.5-ioa"),
-    ("kimi-k3", "kimi-k3"),
+    ("kimi-k3", "kimi-k3-1"),
     ("kimi-k3-1", "kimi-k3-1"),
-    // DeepSeek V4
+    ("kimi-k2.5", "kimi-k2.5"),
+    // DeepSeek
     ("deepseek-v4-pro", "deepseek-v4-pro"),
     ("deepseek-v4-flash", "deepseek-v4-flash"),
-    // Hunyuan 3
+    // Hunyuan
     ("hy3", "hy3"),
-    // GLM 5.x
+    // GLM
     ("glm-5.1", "glm-5.1"),
     ("glm-5.2", "glm-5.2"),
 ];
 
-/// WB 模型 ID → 首选 Cursor 别名（用于 /v1/models）
+/// WB 模型 ID → 首选 Cursor 别名（用于 /v1/models，与上游一致）
 pub const WB_TO_CURSOR_MAP: &[(&str, &str)] = &[
-    ("claude-opus-4.6", "claude-4.6-opus-high"),
-    ("claude-opus-4.6-1m", "claude-4.6-opus-max"),
-    ("claude-sonnet-4.6", "claude-4.6-sonnet-medium"),
-    ("claude-sonnet-4.6-1m", "claude-4.6-sonnet-medium-thinking"),
-    ("claude-opus-4.5", "claude-4.5-opus-high"),
-    ("claude-4.5", "claude-4.5-sonnet"),
-    ("claude-haiku-4.5", "claude-4.5-haiku"),
-    ("gemini-3.0-pro", "gemini-3.1-pro"),
-    ("gemini-3.1-flash-lite", "gemini-3-flash"),
-    ("kimi-k2.5-ioa", "kimi-k2.5"),
-    ("kimi-k3", "kimi-k3"),
     ("kimi-k3-1", "kimi-k3-1"),
+    ("kimi-k2.5", "kimi-k2.5"),
     ("deepseek-v4-pro", "deepseek-v4-pro"),
     ("deepseek-v4-flash", "deepseek-v4-flash"),
     ("hy3", "hy3"),
@@ -58,60 +36,38 @@ pub const WB_TO_CURSOR_MAP: &[(&str, &str)] = &[
 
 /// 推理模型（超时用 300s）
 pub const REASONING_MODELS: &[&str] = &[
-    "deepseek-r1",
     "deepseek-r1-0528-lkeap",
-    "hunyuan-2.0-thinking-ioa",
     "deepseek-v4-pro",
     "deepseek-v4-flash",
     "glm-5.2",
 ];
 
-/// 可用模型列表
+/// 可用模型列表（仅上游真实存在的 ID，与 WorkBuddy 保持一致）
 pub const MODELS: &[(&str, &str)] = &[
     // DeepSeek
-    ("deepseek-r1", "DeepSeek-R1"),
-    ("deepseek-v3", "DeepSeek-V3"),
-    ("deepseek-v3.2", "DeepSeek-V3.2"),
-    ("deepseek-v3-1", "DeepSeek-V3.1"),
-    ("deepseek-v3-0324", "DeepSeek-V3-0324"),
-    ("deepseek-v3-1-volc", "DeepSeek-V3-1-Terminus"),
-    ("deepseek-v3-0324-lkeap", "DeepSeek-V3-0324-LKEAP"),
-    ("deepseek-r1-0528-lkeap", "DeepSeek-R1-0528-LKEAP"),
-    ("deepseek-v3-2-volc-ioa", "DeepSeek-V3-2-Volc"),
     ("deepseek-v4-pro", "DeepSeek-V4-Pro"),
     ("deepseek-v4-flash", "DeepSeek-V4-Flash"),
-    // Claude
-    ("claude-4.5", "Claude-Sonnet-4.5"),
-    ("claude-opus-4.5", "Claude-Opus-4.5"),
-    ("claude-opus-4.6", "Claude-Opus-4.6"),
-    ("claude-opus-4.6-1m", "Claude-Opus-4.6 (1M context)"),
-    ("claude-sonnet-4.6", "Claude-Sonnet-4.6"),
-    ("claude-sonnet-4.6-1m", "Claude-Sonnet-4.6 (1M context)"),
-    ("claude-haiku-4.5", "Claude-Haiku-4.5"),
-    // Gemini
-    ("gemini-3.0-pro", "Gemini-3.0-Pro"),
-    ("gemini-3.1-flash-lite", "Gemini-3.1-Flash-Lite"),
+    ("deepseek-v3-1", "DeepSeek-V3.1"),
+    ("deepseek-v3-1-volc", "DeepSeek-V3-1-Terminus"),
+    ("deepseek-v3-0324", "DeepSeek-V3-0324"),
+    ("deepseek-v3-0324-lkeap", "DeepSeek-V3-0324-LKEAP"),
+    ("deepseek-r1-0528-lkeap", "DeepSeek-R1-0528-LKEAP"),
     // GLM
-    ("glm-4.6", "GLM-4.6"),
-    ("glm-4.7", "GLM-4.7"),
-    ("glm-4.7-ioa", "GLM-4.7-IOA"),
-    ("glm-5.0-ioa", "GLM-5.0"),
-    ("glm-5.0-turbo-ioa", "GLM-5.0-Turbo"),
-    ("glm-5v-turbo", "GLM-5v-Turbo"),
-    ("glm-5v-turbo-ioa", "GLM-5v-Turbo-IOA"),
-    ("glm-5.1", "GLM-5.1"),
     ("glm-5.2", "GLM-5.2"),
+    ("glm-5.1", "GLM-5.1"),
+    ("glm-4.7", "GLM-4.7"),
+    ("glm-4.6", "GLM-4.6"),
+    ("glm-5v-turbo", "GLM-5v-Turbo"),
     // Hunyuan
-    ("hunyuan-2.0-instruct", "Hunyuan-2.0-Instruct"),
-    ("hunyuan-2.0-instruct-ioa", "Hunyuan-2.0-Instruct-IOA"),
-    ("hunyuan-2.0-thinking-ioa", "Hunyuan-2.0-Thinking"),
     ("hy3", "Hunyuan-3 (Hy3)"),
+    ("hunyuan-2.0-instruct", "Hunyuan-2.0-Instruct"),
     // Kimi
-    ("kimi-k2.5-ioa", "Kimi-K2.5"),
-    ("kimi-k3", "Kimi-K3"),
     ("kimi-k3-1", "Kimi-K3.1"),
-    // Default
-    ("codewise-default-model-v2", "Default (Codewise)"),
+    ("kimi-k2.7", "Kimi-K2.7"),
+    ("kimi-k2.6", "Kimi-K2.6"),
+    ("kimi-k2.5", "Kimi-K2.5"),
+    // MiniMax
+    ("minimax-m3", "MiniMax-M3"),
 ];
 
 /// 与 Python `resolve_model()` 一致：无映射则透传
