@@ -4,6 +4,7 @@
 pub mod config;
 pub mod jwt;
 pub mod models;
+pub mod notify;
 pub mod proxy;
 pub mod routes;
 pub mod token;
