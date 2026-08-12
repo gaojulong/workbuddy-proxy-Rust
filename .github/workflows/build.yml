@@ -30,7 +30,9 @@ jobs:
             target: x86_64-pc-windows-msvc
             binary: wb-proxy.exe
           # Linux x86_64
-          - os: ubuntu-latest
+          # 用 ubuntu-22.04（glibc 2.35）而不是 ubuntu-latest（现为 24.04 / glibc 2.39）
+          # 这样二进制可以同时运行在 Ubuntu 22.04 和 24.04 上
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             binary: wb-proxy
     runs-on: ${{ matrix.os }}
