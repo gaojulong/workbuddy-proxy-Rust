@@ -19,6 +19,14 @@ pub fn build_wb_body(mut body: serde_json::Value, model: &str) -> serde_json::Va
     body
 }
 
+/// 上游 chat/completions 路径（WorkBuddy 5.3.8+ 的官方路径）
+///
+/// 背景：旧路径 `/v2/chat/completions` 自 WorkBuddy 5.3.8 起被上游风控下线，
+/// 返回 `403 {"code":11140,"msg":"request illegal"}`；新路径 `/console/as/chat/completions`
+/// 为客户端实际使用的路径（见 app.asar 中 SKILL_RECOMMEND_CHAT_COMPLETIONS_PATH 及
+/// WorkBuddy CLI 的 model_request 实现），已验证可正常返回 OpenAI 格式 SSE 流。
+pub const WB_CHAT_COMPLETIONS_PATH: &str = "/console/as/chat/completions";
+
 /// 上游响应错误 → 错误 JSON（与 Python 版一致）
 fn error_sse(msg: &str) -> String {
     format!("data: {}\n\n", serde_json::json!({"error": msg}))
@@ -32,7 +40,7 @@ pub async fn stream_response(
     mut sender: tokio::sync::mpsc::Sender<String>,
 ) {
     let max_attempts = 2;
-    let url = format!("{}/v2/chat/completions", state.config.wb_api_base);
+    let url = format!("{}{}", state.config.wb_api_base.trim_end_matches('/'), WB_CHAT_COMPLETIONS_PATH);
     let timeout = timeout_for(&model, state.config.wb_timeout, state.config.wb_reasoning_timeout);
 
     for attempt in 1..=max_attempts {
@@ -79,7 +87,7 @@ pub async fn stream_response(
             .await;
 
         match resp {
-            Err(e) => {
+            Err(_e) => {
                 tracing::error!("[{}] Upstream timeout (attempt {})", model, attempt);
                 if attempt < max_attempts {
                     continue;
@@ -177,6 +185,10 @@ pub async fn stream_response(
 }
 
 /// 处理一行 SSE（与 Python 版逻辑一致）
+///
+/// 兼容上游 5.3.8+ 新增的握手帧：
+///   event: conversationId\n  data: conv-xxx\n\n
+/// 这类帧不是 OpenAI 格式的 data 负载，直接丢弃，避免污染转发给客户端的 SSE 流。
 async fn process_line(
     line: &[u8],
     has_content: &mut bool,
@@ -191,7 +203,10 @@ async fn process_line(
             *has_content = true;
         }
         let _ = sender.send(format!("{}\n\n", line_str)).await;
+    } else if line_str.starts_with("event: ") || line_str.starts_with(":") {
+        // 握手帧/注释帧：仅用于握手（如 event: conversationId），不转发
     } else if !line_str.trim().is_empty() {
+        // 非 data 前缀的裸行（历史兼容）：包装为 data: 转发
         *has_content = true;
         let _ = sender.send(format!("data: {}\n\n", line_str)).await;
     }
@@ -204,7 +219,7 @@ pub async fn non_stream_response(
     model: String,
 ) -> Result<axum::Json<serde_json::Value>, (StatusCode, String)> {
     let max_attempts = 2;
-    let url = format!("{}/v2/chat/completions", state.config.wb_api_base);
+    let url = format!("{}{}", state.config.wb_api_base.trim_end_matches('/'), WB_CHAT_COMPLETIONS_PATH);
     let timeout = timeout_for(&model, state.config.wb_timeout, state.config.wb_reasoning_timeout);
 
     for attempt in 1..=max_attempts {
